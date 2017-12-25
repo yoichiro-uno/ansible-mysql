@@ -1,0 +1,6 @@
+---
+- name: Create My SQL DB
+  hosts: all
+  become: yes
+  roles:
+    - mysqldb

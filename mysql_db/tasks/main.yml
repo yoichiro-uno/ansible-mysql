@@ -1,0 +1,13 @@
+----
+- name: create mysql database
+  mysql_db:
+    name: {{ mysql_database }}
+    state: present
+
+- name: create mysql user
+  mysql_user:
+    name: {{ mysql_user }}
+    host: {{ mysql_host_list }} 
+    password: {{ mysql_password }}
+    priv: {{ mysql_database }}.*:ALL,GRANT
+    state: present

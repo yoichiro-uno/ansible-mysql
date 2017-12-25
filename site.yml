@@ -1,0 +1,6 @@
+---
+- name: SetUp My SQL Server
+  hosts: all
+  become: yes
+  roles:
+    - mysql

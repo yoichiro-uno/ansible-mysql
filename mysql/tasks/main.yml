@@ -1,0 +1,53 @@
+- name: install MySQL packages
+  yum:
+    name:{{ item }}
+    state=installed
+  with_items:
+    - mysql-community-server
+    - mysql-community-client
+    - mysql-community-common
+    - mysql-community-libs
+    - mysql-community-libs-compat
+    - MySQL-python
+
+- name: 初期設定確認(mysqladmin ping で確認)
+  shell: "mysqladmin --defaults-file={{ mysql_root_connect.defaults_file}} ping | grep alive"
+  ignore_errors: true
+  register: init_flag
+
+- name: anonymous ユーザの削除
+  mysql_user:
+    name: ""
+    host: "{{ item }}"
+    state: absent
+  with_items:
+    - localhost.localdomain
+    - localhost
+  when: init_flag.rc == 1
+
+- name: root ユーザのパスワード変更
+  mysql_user:
+    name: "root"
+    host: "{{ item }}"
+    password: "{{ mysql_root_connect.root_password }}"
+  with_items:
+    - 127.0.0.1
+    - ::1
+    - localhost.localdomain
+    - localhost
+  when: init_flag.rc == 1
+
+- name: root ユーザ接続設定ファイル作成
+  template:
+    src: my.cnf.j2
+    dest: "{{ mysql_root_connect.defaults_file }}"
+    owner: root
+    group: root
+    mode: 0600
+  when: init_flag.rc == 1
+
+- name: start mysql
+  systemd:
+    name: mysqld
+    state: restarted
+    enabled: yes

@@ -1,0 +1,6 @@
+mysql_user: test_user
+mysql_password: test_password
+mysql_database: test_database
+mysql_host_list:
+  - localhost
+  - 192.168.10.%
