@@ -3,6 +3,8 @@
   mysql_db:
     name: {{ mysql_database }}
     state: present
+    login_user: "root"
+    login_password: "{{ mysql_root_connect_root_password }}"
 
 - name: create mysql user
   mysql_user:
@@ -10,4 +12,6 @@
     host: {{ mysql_host_list }} 
     password: {{ mysql_password }}
     priv: {{ mysql_database }}.*:ALL,GRANT
+    login_user: "root"
+    login_password: "{{ mysql_root_connect_root_password }}"
     state: present

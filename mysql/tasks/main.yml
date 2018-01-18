@@ -1,53 +1,71 @@
 - name: install MySQL packages
   yum:
-    name:{{ item }}
-    state=installed
+    name: "{{ item }}"
+    state: installed
   with_items:
-    - mysql-community-server
-    - mysql-community-client
-    - mysql-community-common
-    - mysql-community-libs
-    - mysql-community-libs-compat
+    - mariadb-devel 
+    - mariadb 
+    - mariadb-server 
     - MySQL-python
 
+- name: start Mysql
+  systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+
 - name: 初期設定確認(mysqladmin ping で確認)
-  shell: "mysqladmin --defaults-file={{ mysql_root_connect.defaults_file}} ping | grep alive"
+  shell: "mysqladmin --defaults-file={{ mysql_root_connect_defaults_file }} ping | grep alive"
   ignore_errors: true
   register: init_flag
+
+- name: root ユーザ接続設定ファイル作成
+  template:
+    src: my.cnf.j2
+    dest: "{{ mysql_root_connect_defaults_file }}"
+    owner: root
+    group: root
+    mode: 0600
+  when: init_flag.rc == 0
+
+- name: root ユーザのパスワード変更
+  mysql_user:
+    name: "root"
+    host: "{{ item }}"
+    password: "{{ mysql_root_connect_root_password }}"
+  with_items:
+    - 127.0.0.1
+    - ::1
+    - localhost.localdomain
+    - localhost
+  when: init_flag.rc == 0
 
 - name: anonymous ユーザの削除
   mysql_user:
     name: ""
     host: "{{ item }}"
     state: absent
+    login_user: "root"
+    login_password: "{{ mysql_root_connect_root_password }}"
   with_items:
     - localhost.localdomain
     - localhost
-  when: init_flag.rc == 1
+  when: init_flag.rc == 0
 
-- name: root ユーザのパスワード変更
-  mysql_user:
-    name: "root"
-    host: "{{ item }}"
-    password: "{{ mysql_root_connect.root_password }}"
-  with_items:
-    - 127.0.0.1
-    - ::1
-    - localhost.localdomain
-    - localhost
-  when: init_flag.rc == 1
+- name: Remove test DB
+  mysql_db:
+    db: test
+    state: absent
+    login_user: "root"
+    login_password: "{{ mysql_root_connect_root_password }}"
+  when: init_flag.rc == 0
 
-- name: root ユーザ接続設定ファイル作成
-  template:
-    src: my.cnf.j2
-    dest: "{{ mysql_root_connect.defaults_file }}"
-    owner: root
-    group: root
-    mode: 0600
-  when: init_flag.rc == 1
+#- name: ReStart docker-{{ inventory_hostname }} service
+#  systemd:
+#    name: docker-{{ inventory_hostname }}.service
+#    state: restarted
 
-- name: start mysql
+- name: Restart Mysql
   systemd:
-    name: mysqld
+    name: mariadb
     state: restarted
-    enabled: yes
