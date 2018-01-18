@@ -1,0 +1,2 @@
+mysql_root_connect_root_password: "MariaDBRootPass"
+mysql_root_connect_defaults_file: "/etc/my.cnf"
