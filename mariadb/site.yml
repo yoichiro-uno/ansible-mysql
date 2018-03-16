@@ -1,0 +1,6 @@
+---
+- name: SetUp Mariadb Server
+  hosts: all
+  become: yes
+  roles:
+    - mariadb

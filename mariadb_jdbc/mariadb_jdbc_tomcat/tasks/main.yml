@@ -1,0 +1,14 @@
+- name: Download mariadb-java-client
+  get_url:
+    url: "{{ jdbc_url}}"
+    dest: "{{ jdbc_path }}"
+    mode: 0644
+
+- name: Restart tomcat
+  systemd:
+    name: tomcat
+    state: restarted
+
+- name: wait for tomcat to start
+  wait_for: 
+    port: "{{ http_port }}"

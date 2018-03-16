@@ -3,4 +3,4 @@
   hosts: all
   become: yes
   roles:
-    - mysqldb
+    - mariadb_db

@@ -1,0 +1,112 @@
+---
+- name: Setup Mariadb Repository
+  shell: /bin/bash -lc "curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | /bin/bash"
+  register: _repo_install
+  failed_when: _repo_install.rc not in [0]
+
+- name: install MySQL packages
+  yum:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - mariadb-devel 
+    - mariadb 
+    - mariadb-server 
+    - MySQL-python
+
+- name: stop Mariadb if started
+  systemd:
+    name: mariadb
+    state: stopped
+
+#- name: Configure global level conf my.cnf
+#  template:
+#    src: my.cnf.j2
+#    dest: "{{ mariadb_global_conf }}"
+#    backup: yes
+#    owner: mysql
+#    group: mysql
+#    mode: 0644
+
+- name: configure server size config
+  template:
+    src: "my-{{ mariadb_initial_size }}.cnf.j2"
+    dest: /etc/my.cnf.d/server.cnf
+    owner: mysql
+    group: mysql
+    mode: 0644
+
+- name: Create Mysql logrotation file
+  template: 
+    src: logrotate.mariadb.j2
+    dest: /etc/logrotate.d/mariadb
+
+- name: Check MariaDB log file
+  stat:
+    path: "{{ mariadb_log }}"
+  register: log_exists
+
+- name: Create MariaDB log file
+  file: 
+    path: "{{ mariadb_log }}"
+    state: touch
+    owner: mysql
+    group: mysql
+    mode: 0775
+  when: log_exists.stat.md5 is not defined
+
+- name: Create MariaDB PID directory
+  file:
+    path: /var/run/mysqld
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: 0775
+
+- name: Create MariaDB DB directory
+  file:
+    path: "{{ mariadb_data }}"
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: 0775
+
+- name: start Mysql
+  systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: root ユーザのパスワード変更
+  mysql_user:
+    name: "root"
+    host: "{{ item }}"
+    password: "{{ mariadb_root_password }}"
+  with_items:
+    - 127.0.0.1
+    - ::1
+    - localhost.localdomain
+    - localhost
+
+- name: anonymous ユーザの削除
+  mysql_user:
+    name: ""
+    host: "{{ item }}"
+    state: absent
+    login_user: "root"
+    login_password: "{{ mariadb_root_password }}"
+  with_items:
+    - localhost.localdomain
+    - localhost
+
+- name: Remove test DB
+  mysql_db:
+    db: test
+    state: absent
+    login_user: "root"
+    login_password: "{{ mariadb_root_password }}"
+
+- name: Restart Mysql
+  systemd:
+    name: mariadb
+    state: restarted

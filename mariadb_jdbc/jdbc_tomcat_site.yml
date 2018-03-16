@@ -1,0 +1,6 @@
+---
+- name: Install JDBC driver to tomcat
+  hosts: all
+  become: yes
+  roles:
+    - mariadb_jdbc_tomcat

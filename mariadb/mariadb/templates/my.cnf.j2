@@ -1,0 +1,16 @@
+[mysqld]
+
+# user=mysql
+# Disabling symbolic-links is recommended to prevent assorted security risks
+symbolic-links=0
+
+[mysqld_safe]
+log-error={{mariadb_log}}
+pid-file=/var/run/mariadb/mariadb.pid
+
+[client]
+
+#
+# include all files from the config directory
+#
+!includedir /etc/my.cnf.d
